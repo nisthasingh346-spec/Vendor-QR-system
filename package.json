@@ -1,0 +1,25 @@
+{
+  "name": "food-and-food-qr-system",
+  "version": "1.0.0",
+  "description": "QR-based ordering system for street vendors",
+  "main": "index.js",
+  "scripts": {
+    "start": "echo 'Run the backend and frontend services separately on Render'",
+    "dev:backend": "cd backend && uvicorn main:app --reload --port 8000",
+    "dev:frontend": "cd frontend && npx http-server -p 8080"
+  },
+  "keywords": [
+    "qr-code",
+    "ordering",
+    "vendor",
+    "restaurant",
+    "fastapi",
+    "blitz",
+    "websocket"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

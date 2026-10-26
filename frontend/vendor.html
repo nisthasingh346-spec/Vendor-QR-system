@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Dashboard - Food and Food</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body class="vendor-body">
+    <header class="dashboard-header mb-4" style="background: rgba(255,255,255,0.02); border-bottom: 1px solid #334155;">
+        <div class="container flex justify-between items-center p-2">
+            <div>
+                <h1 class="font-extrabold" style="font-size: 1.8rem; color: var(--primary);">Food and Food Kitchen</h1>
+                <p class="text-muted" style="font-size: 0.9rem; opacity: 1;">Command Center v2.0</p>
+            </div>
+            <div id="connection-status" class="badge"
+                style="background: #10B981; color: white; padding: 8px 16px; border-radius: 50px; font-weight: 800;">
+                ● Live</div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Batch Prep Summary Bar -->
+        <div id="batch-prep-bar" class="batch-bar animate-fade-in" style="display: none;">
+            <!-- Summarized counts will appear here -->
+        </div>
+        <div class="stats-grid mb-1">
+            <div class="stat-card">
+                <span class="stat-value" id="stats-orders">0</span>
+                <span class="stat-label">Total Orders</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="stats-sales">₹0</span>
+                <span class="stat-label">Today's Sales</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="order-count-badge">0</span>
+                <span class="stat-label">Pending</span>
+            </div>
+            <!-- QR Shortcut Button in Stats Grid -->
+            <div class="stat-card" onclick="openAllTableQRsModal()" style="cursor: pointer; transition: 0.3s; border-color: rgba(255, 77, 0, 0.4) !important;">
+                <span class="stat-value" style="color: #FF4D00;">🪑</span>
+                <span class="stat-label">7 Table QRs</span>
+            </div>
+        </div>
+
+        <!-- 7 Tables & Cumulative Running Bills Section -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 28px; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h2 style="font-size: 1.45rem; font-weight: 800; color: #F8FAFC; display: flex; align-items: center; gap: 10px; margin: 0;">
+                    <span>🪑</span> Dining Tables & Running Bills
+                </h2>
+                <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 4px;">Live tracking of all 7 tables, cumulative totals, and active sessions</p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn-vendor-action" onclick="openAllTableQRsModal()" style="display: flex; align-items: center; gap: 6px; border-color: rgba(255, 77, 0, 0.4); color: #FF8533;">
+                    <span>📱</span> View 7 Table QRs
+                </button>
+                <button class="btn-vendor-action" onclick="loadVendorTables()" title="Refresh tables">
+                    🔄 Refresh Tables
+                </button>
+            </div>
+        </div>
+
+        <!-- 7 Table Cards Grid -->
+        <div id="vendor-tables-grid" class="vendor-tables-grid">
+            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+                <div class="spinner" style="margin: 0 auto 12px;"></div>
+                <p>Loading dining tables...</p>
+            </div>
+        </div>
+
+        <!-- Table Details Modal -->
+        <div id="table-orders-modal" class="table-modal-backdrop" style="display: none;" onclick="if(event.target === this) closeTableOrdersModal()">
+            <div class="table-modal-card animate-fade-in">
+                <div class="table-modal-header">
+                    <div>
+                        <h3 id="modal-table-title" style="font-size: 1.4rem; font-weight: 800; margin: 0; color: #F8FAFC;">TABLE 1</h3>
+                        <p id="modal-table-subtitle" style="font-size: 0.85rem; color: #94A3B8; margin-top: 4px;">Active Session &bull; Started: 10:00 AM</p>
+                    </div>
+                    <button onclick="closeTableOrdersModal()" style="background: none; border: none; font-size: 1.8rem; color: #94A3B8; cursor: pointer; line-height: 1;">&times;</button>
+                </div>
+                <div class="table-modal-body" id="modal-table-body">
+                    <!-- Orders list rendered dynamically -->
+                </div>
+                <div class="table-modal-footer" style="flex-direction: column; gap: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 12px; border-bottom: 1px dashed #334155;">
+                        <div>
+                            <span style="font-size: 0.85rem; color: #94A3B8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">RUNNING BILL TOTAL</span>
+                            <div style="font-size: 0.8rem; color: #64748B;">Includes all active orders</div>
+                        </div>
+                        <span id="modal-table-total" style="font-size: 1.8rem; font-weight: 800; color: #FF4D00;">₹0</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
+                        <span style="font-size: 0.85rem; color: #94A3B8;">Payment: <strong id="modal-table-payment" style="color: #F87171;">UNPAID</strong></span>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-vendor-action" id="modal-btn-bill" onclick="openTableBillFromModal()" style="color: #FF8533; border-color: rgba(255, 77, 0, 0.4); display: flex; align-items: center; gap: 6px;">
+                                🧾 Generate Bill
+                            </button>
+                            <button class="btn-vendor-action" id="modal-btn-close" onclick="closeTableFromModal()" style="background: #10B981; color: white; border: none; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                                ✓ Mark as Paid & Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Printable Bill Modal -->
+        <div id="table-bill-modal" class="table-modal-backdrop" style="display: none;" onclick="if(event.target === this) closeTableBillModal()">
+            <div class="table-modal-card animate-fade-in" style="max-width: 460px;">
+                <div class="table-modal-header">
+                    <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: #F8FAFC;">Receipt Bill</h3>
+                    <button onclick="closeTableBillModal()" style="background: none; border: none; font-size: 1.8rem; color: #94A3B8; cursor: pointer; line-height: 1;">&times;</button>
+                </div>
+                <div class="table-modal-body" style="background: #0F172A; padding: 20px;">
+                    <div id="bill-receipt-content" class="bill-receipt-paper printable-area">
+                        <!-- Receipt HTML generated dynamically -->
+                    </div>
+                </div>
+                <div class="table-modal-footer" style="justify-content: space-between;">
+                    <button class="btn-vendor-action" onclick="closeTableBillModal()">Close</button>
+                    <button class="action-btn-main btn-start" onclick="printBillReceipt()" style="margin: 0; width: auto; padding: 10px 20px; display: flex; align-items: center; gap: 6px;">
+                        🖨️ Print Bill
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7 Table QRs Modal -->
+        <div id="all-qrs-modal" class="table-modal-backdrop" style="display: none;" onclick="if(event.target === this) closeAllTableQRsModal()">
+            <div class="table-modal-card animate-fade-in" style="max-width: 880px; max-height: 92vh;">
+                <div class="table-modal-header">
+                    <div>
+                        <h3 style="font-size: 1.35rem; font-weight: 800; margin: 0; color: #F8FAFC;">7 Table QR Codes</h3>
+                        <p style="font-size: 0.85rem; color: #94A3B8; margin-top: 4px;">Each QR code opens the menu bound to its specific table</p>
+                    </div>
+                    <button onclick="closeAllTableQRsModal()" style="background: none; border: none; font-size: 1.8rem; color: #94A3B8; cursor: pointer; line-height: 1;">&times;</button>
+                </div>
+                <div class="table-modal-body printable-area" id="all-qrs-container">
+                    <div class="all-qrs-grid" id="all-qrs-grid">
+                        <!-- 7 QRs injected dynamically -->
+                    </div>
+                </div>
+                <div class="table-modal-footer" style="justify-content: space-between;">
+                    <button class="btn-vendor-action" onclick="closeAllTableQRsModal()">Close</button>
+                    <button class="action-btn-main btn-ready" onclick="printAllTableQRs()" style="margin: 0; width: auto; padding: 10px 20px; display: flex; align-items: center; gap: 6px;">
+                        🖨️ Print All 7 Table QRs
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden QR Modal (Legacy) -->
+        <div id="qr-modal" class="suggestion-overlay"
+            style="display: none; align-items: center; justify-content: center; z-index: 5000;">
+            <div class="suggestion-card animate-fade-in" style="max-width: 400px; padding: 40px; position: relative;">
+                <button onclick="closeQRModal()"
+                    style="position: absolute; top: 15px; right: 20px; border: none; background: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+
+                <h3 class="font-extrabold mb-1" style="font-size: 1.6rem; color: var(--text-main);">Vendors QR Code</h3>
+                <p class="text-muted mb-3" style="font-size: 0.9rem;">Scan to view live menu</p>
+                <div id="qr-refresh-timer" style="background: #FFF5F5; color: #FF4D00; padding: 12px 24px; border-radius: 50px; font-size: 1.1rem; font-weight: 800; border: 2px solid #FED7D7; box-shadow: 0 4px 15px rgba(255, 77, 0, 0.15); display: flex; align-items: center; gap: 10px; margin: 0 auto 20px; width: fit-content;">
+                    <span style="animation: pulse 1s infinite;">🕒</span>
+                    <span>Refreshing in 30s</span>
+                </div>
+
+                <div id="qr-progress-container" style="width: 100%; height: 8px; background: #F1F5F9; border-radius: 10px; margin-bottom: 25px; overflow: hidden; border: 1px solid #E2E8F0;">
+                    <div id="qr-progress-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #FF4D00, #FF8533); transition: width 1s linear; border-radius: 10px;"></div>
+                </div>
+
+                <div id="qr-container"
+                    style="background: white; padding: 20px; border-radius: 24px; box-shadow: var(--shadow-md); margin-bottom: 24px; border: 1px solid #F1F5F9; display: inline-block;">
+                    <div id="qrcode"></div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <button class="btn btn-outline" onclick="closeQRModal()"
+                        style="border: none; color: var(--text-muted);">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incoming Orders Section -->
+        <h2 class="order-section-title">
+            Incoming Orders
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                <path d="M4 22h16"></path>
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+            </svg>
+        </h2>
+
+        <div id="vendor-order-list" class="status-grid mb-4">
+            <!-- Orders will appear here in real-time -->
+            <div style="grid-column: 1/-1; text-align: center; padding: 80px 20px;">
+                <div class="spinner" style="margin: 0 auto 20px;"></div>
+                <p style="color: var(--text-muted); font-weight: 600;">Connecting to order stream...</p>
+            </div>
+        </div>
+
+        <div id="vendor-new-order-banner" class="vendor-new-order-banner" onclick="this.classList.remove('show')">
+            <div>
+                <strong id="vendor-new-order-title">New order received</strong>
+                <span id="vendor-new-order-detail">Tap to dismiss</span>
+            </div>
+            <button type="button" aria-label="Dismiss notification">&times;</button>
+        </div>
+
+        <!-- Menu Management Section -->
+        <div class="card mb-4" style="margin-top: 36px; padding: 26px; border-radius: 20px; box-shadow: var(--shadow-md);">
+            <!-- Section Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #E2E8F0;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.5rem;">📋</span>
+                        <h3 class="font-extrabold" style="font-size: 1.35rem; color: var(--text-main); margin: 0;">Manage Menu Availability</h3>
+                    </div>
+                    <p class="text-muted" style="font-size: 0.88rem; margin-top: 4px;">Instantly mark dishes In-Stock or Sold-Out. Changes reflect immediately on customer menus.</p>
+                </div>
+                <!-- Availability Stats Pills -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                    <span id="vendor-stat-total" class="badge" style="background: #0F172A; color: #F8FAFC; border: 1px solid #334155; font-size: 0.82rem; padding: 6px 12px; border-radius: 8px; font-weight: 700;">Total: 0</span>
+                    <span id="vendor-stat-available" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.82rem; padding: 6px 12px; border-radius: 8px; font-weight: 700;">In Stock: 0</span>
+                    <span id="vendor-stat-soldout" class="badge" style="background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.82rem; padding: 6px 12px; border-radius: 8px; font-weight: 700;">Sold Out: 0</span>
+                </div>
+            </div>
+
+            <!-- Controls Toolbar -->
+            <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <!-- Search Input -->
+                    <div class="search-bar" style="flex: 1; max-width: 480px; min-width: 260px; box-shadow: none; border: 1.5px solid #334155; padding: 10px 16px; border-radius: 14px; background: #0F172A; transition: 0.2s;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted)">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="vendor-menu-search" placeholder="Quick search any dish across categories..." oninput="handleVendorFilterChange()" style="font-size: 0.95rem; border: none; outline: none; width: 100%; background: transparent; font-weight: 500; color: white;">
+                        <button id="vendor-search-clear" onclick="clearVendorSearch()" style="display: none; border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 0 4px;">&times;</button>
+                    </div>
+
+                    <!-- Status Filter Tabs & Refresh -->
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; background: #0F172A; padding: 4px; border-radius: 12px; gap: 4px; border: 1px solid #334155;">
+                            <button type="button" class="vendor-filter-tab active" data-filter="all" onclick="setVendorStatusFilter('all', this)">All</button>
+                            <button type="button" class="vendor-filter-tab" data-filter="available" onclick="setVendorStatusFilter('available', this)">✓ In Stock</button>
+                            <button type="button" class="vendor-filter-tab" data-filter="soldout" onclick="setVendorStatusFilter('soldout', this)">✕ Sold Out</button>
+                        </div>
+                        <button type="button" class="btn-vendor-action" onclick="loadMenuForManagement()" title="Refresh menu from database">
+                            🔄 Refresh
+                        </button>
+                        <button type="button" class="btn-vendor-action btn-vendor-primary" onclick="openMenuItemEditor()" title="Add a new menu item">
+                            + Add Item
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Spacious Horizontal Categories Bar -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #94A3B8;">Select Category</span>
+                        <span style="font-size: 0.78rem; color: #64748B;">Scroll horizontally for more categories ➔</span>
+                    </div>
+                    <div id="vendor-category-bar" class="vendor-category-scroll">
+                        <!-- Horizontal category buttons injected dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Section & Items Container -->
+            <div id="vendor-menu-management">
+                <!-- Grouped category sections & items injected dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <div id="vendor-item-modal" class="vendor-item-modal-backdrop" onclick="if(event.target === this) closeMenuItemEditor()">
+        <form id="vendor-item-form" class="vendor-item-modal" onsubmit="saveMenuItem(event)">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px;">
+                <div>
+                    <h3 id="vendor-item-modal-title" style="margin: 0; color: white;">Add Menu Item</h3>
+                    <p style="color: #94A3B8; font-size: 0.86rem; margin-top: 4px;">Changes appear on the customer menu after saving.</p>
+                </div>
+                <button type="button" onclick="closeMenuItemEditor()" style="background: transparent; border: none; color: #94A3B8; font-size: 1.8rem; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <input type="hidden" id="vendor-edit-item-id">
+            <label>Dish name<input id="vendor-edit-name" required maxlength="120"></label>
+            <label>Description<textarea id="vendor-edit-description" rows="3" required maxlength="320"></textarea></label>
+            <div class="vendor-form-grid">
+                <label>Price<input id="vendor-edit-price" type="number" min="0" step="1" required></label>
+                <label>Category<select id="vendor-edit-category" required></select></label>
+            </div>
+            <label>Image URL or local filename<input id="vendor-edit-image" placeholder="images/dish.png or https://..."></label>
+            <label class="vendor-checkbox-row"><input id="vendor-edit-available" type="checkbox" checked> In stock</label>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+                <button type="button" class="btn-vendor-action" onclick="closeMenuItemEditor()">Cancel</button>
+                <button type="submit" class="btn-vendor-action btn-vendor-primary">Save Item</button>
+            </div>
+        </form>
+    </div>
+
+    <audio id="order-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initVendorDashboard();
+        });
+    </script>
+</body>
+
+</html>
